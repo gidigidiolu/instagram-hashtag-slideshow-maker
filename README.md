@@ -34,3 +34,15 @@ python hashtag.py totliv 1000 --html slideshow.html
 
 python hashtag.py totliv 1000 360 --html sideshow.html
 ```
+
+To add a '--clear' flag.
+
+```shell
+python hashtag.py totliv 1000 --clear
+
+python hashtag.py totliv 1000 360 --clear
+
+python hashtag.py totliv 1000 --html slideshow.html --clear
+
+python hashtag.py totliv 1000 360 --html sideshow.html --clear
+```
