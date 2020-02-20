@@ -71,7 +71,7 @@ def main(hashtag, number, sleep_time, clear, html):
             soup = BeautifulSoup(fp, "html.parser")
 
         tag = soup.title.string.split(' ')[0]
-        if tag != f'#{hashtag}':
+        if tag != f'#{hashtag}' and not clear:
             raise click.ClickException(f"{html} contains a different hashtag. "
                                        "Please include the --clear flag to "
                                        "clear images.")
