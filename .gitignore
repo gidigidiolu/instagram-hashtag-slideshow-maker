@@ -24,3 +24,6 @@ node_modules/
 secret.py
 inscrawler/bin/*
 !inscrawler/bin/.keep
+
+# exclude html files
+*.html
