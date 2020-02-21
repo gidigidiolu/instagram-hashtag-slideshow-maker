@@ -1,4 +1,5 @@
 import datetime
+import os
 import time
 
 import click
@@ -8,38 +9,93 @@ from bs4 import BeautifulSoup
 from crawler import get_posts_by_hashtag
 
 
-def __create_content(img_url):
-    return ('<div class="mySlides fade">'
-            '<div class="col d-flex justify-content-center">'
-            '<div class="d-flex flex-column">'
-            '<div class="item">'
-            f'<img class="rounded" src="{img_url}">'
-            '</div>'
-            '</div>'
-            '</div>'
-            '</div>')
+def __init__html():
+    """Intialise an HTML Document
+    
+    Returns:
+        str -- string representation of a HTML Document
+    """
+    return ('<!DOCTYPE html>\n\n<html>\n<head>\n<title>SlideShow</title>\n'
+            '<link crossorigin="anonymous" '
+            'href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/'
+            'bootstrap.min.css" '
+            'integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iu'
+            'XoPkFOJwJ8ERdknLPMO" '
+            'rel="stylesheet"/>\n<link crossorigin="anonymous" '
+            'href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" '
+            'integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRy'
+            'MA2Fd33n5dQ8lWUE00s/" '
+            'rel="stylesheet"/>\n<style>\n      body {\n      '
+            'background-color: #000000;\n      margin-top: 10px;\n      }\n   '
+            '   .mySlides {display: none}\n      .col {\n        '
+            'height:100vh;\n      }\n\n      img{\n        max-width: 100%;\n'
+            '        object-fit: cover;\n        height: calc(100vh - 35px);\n'
+            '      }\n      .item:last-child {\n        max-height:35px; '
+            '/* set here your last-item height */\n      }\n      '
+            '/* Caption text */\n      .text {\n      color: #ffffff;\n      '
+            'font-size: 15px;\n      padding: 8px 12px;\n      '
+            'position: absolute;\n      bottom: 8px;\n      width: 100%;\n    '
+            '  text-align: center;\n      }\n      /* Fading animation */\n   '
+            '   .fade {\n      -webkit-animation-name: fade;\n     '
+            ' -webkit-animation-duration: 7s;\n      animation-name: fade;\n '
+            '     animation-duration: 7s;\n      }\n      @-webkit-keyframes '
+            'fade {\n      from {opacity: .7} \n      to {opacity: 1}\n    '
+            '  }\n      @keyframes fade {\n      from {opacity: .7} \n     '
+            ' to {opacity: 1}\n      }\n    </style>\n</head>\n<body>\n<div '
+            'class="container"></div>\n<br/>\n<script>\n    '
+            '  var slideIndex = 0;\n      showSlides();\n      \n     '
+            ' function showSlides() {\n        var i;\n       '
+            ' var slides = document.getElementsByClassName("mySlides");\n     '
+            '   for (i = 0; i < slides.length; i++) {\n         '
+            ' slides[i].style.display = "none"; \n        }\n      '
+            '  slideIndex++;\n        if (slideIndex > slides.length) '
+            '{slideIndex = 1} \n       '
+            ' slides[slideIndex-1].style.display = "block"; \n       '
+            ' setTimeout(showSlides, 7000); // Change image every 7 seconds\n'
+            '      }\n    </script>\n</body>\n</html>')
 
 
-def create_slideshow(html_file='index.html', clear_target=False,
-                     hashtags=None):
-    with open(html_file, encoding='utf8') as fp:
-        soup = BeautifulSoup(fp, "html.parser")
+def __create_content(img_src, alt):
+    """Page Element for an image
+    
+    Arguments:
+        img_src {str} -- image source
+        alt {str} -- alternative text for image
+    """
+    return('<div class="mySlides fade">\n'
+           '<div class="col d-flex justify-content-center">\n'
+           '<div class="d-flex flex-column">\n<div class="item">'
+           f'<img alt={alt} class="rounded" src="{img_src}"/>'
+           '</div>\n</div>\n</div>\n</div>')
 
+
+def create_slideshow(soup=None, hashtags=None, html_file='index.html'):
+    """Creates hashtag slideshow as an HTML Document
+    
+    Keyword Arguments:
+        soup {BeautifulSoap} -- A data structure representing a parsed HTML
+        document (default: {None})
+        hashtags {list} -- a list of hashtag urls and their respective keys
+        (default: {None})
+        html_file {str} -- an HTML file (default: {'index.html'})
+    
+    Returns:
+        BeautifulSoap -- A data structure representing a parsed HTML document
+    """
     target = soup.find(class_= 'container')
-
-    if clear_target:
-        target.clear()
 
     bar = progressbar.ProgressBar(max_value=len(hashtags),
                                   prefix='Updating HTML file: ')
     bar.start()
     for hashtag in hashtags:
-        img_url = hashtag['img_url']
+        img_src = hashtag['img_url']
+        img_key = hashtag['key']
+        # url_alt = img_src.split('?')[0]
         
         # skip inserting URL if it already exists in target
-        search_result = target.find(attrs={'src': img_url})
+        search_result = target.find(attrs={'alt': img_key})
         if search_result is None:
-            content = __create_content(img_url)
+            content = __create_content(img_src, alt=img_key)
 
             # create a temporary document from your HTML
             temp = BeautifulSoup(content, "html.parser")
@@ -66,34 +122,46 @@ def write_soup_to_file(output_file="index.html", soup=None):
 @click.argument('sleep_time', default=86400)
 @click.option('--clear', is_flag=True)
 @click.option('--html', default='index.html', help='html file to update',
-              type=click.Path(exists=True))
+              type=click.Path())
 def main(hashtag, number, sleep_time, clear, html):
-    while True:
-        print('>> App Stated - Please be patient.. '
-              'This may take sometime to complete...')
+    soup = None
 
-        current_time = datetime.datetime.now()
-
-        # set clear if hashtag is different
+    if os.path.exists(html):
+        # open file and check if the slideshow is for the current hashtag
         with open(html, encoding='utf8') as fp:
             soup = BeautifulSoup(fp, "html.parser")
 
         tag = soup.title.string.split(' ')[0]
         if tag != f'#{hashtag}' and not clear:
-            raise click.ClickException(f"{html} contains a different hashtag. "
+            raise click.ClickException(f"{html} is for a different hashtag. "
                                        "Please include the --clear flag to "
-                                       "clear images.")
+                                       "remove file.")
+        if clear:
+            os.remove(html)
+
+    if not os.path.exists(html):
+        soup = BeautifulSoup(__init__html(), "html.parser")
+
+    while True:
+        print('>> App Stated - Please be patient.. '
+              'This may take sometime to complete...')
+
+        current_time = datetime.datetime.now()
+        if os.path.exists(html):
+            # get updated soup
+            with open(html, encoding='utf8') as fp:
+                soup = BeautifulSoup(fp, "html.parser")
 
         hashtags = get_posts_by_hashtag(tag=hashtag, number=number)
-        if clear:
-            soup = create_slideshow(html_file=html, hashtags=hashtags,
-                                    clear_target=True)
-        else:
-            soup = create_slideshow(html_file=html, hashtags=hashtags)
+        soup = create_slideshow(soup=soup, hashtags=hashtags)
 
         # update html's title
-        soup.title.string = f'#{hashtag} SlideShow'
-        write_soup_to_file(soup=soup)
+        title = soup.title.string
+        update_title = f'#{hashtag} slideshow'
+        if title != update_title:
+            soup.title.string = update_title
+ 
+        write_soup_to_file(output_file=html, soup=soup)
         print(f'>> {html} has been updated.')
 
         # sleep_time in seconds
