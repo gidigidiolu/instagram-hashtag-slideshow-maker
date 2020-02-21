@@ -9,7 +9,15 @@ from crawler import get_posts_by_hashtag
 
 
 def __create_content(img_url):
-    return (f'<div class="mySlides fade"><img src="{img_url}"></div>')
+    return ('<div class="mySlides fade">'
+            '<div class="col d-flex justify-content-center">'
+            '<div class="d-flex flex-column">'
+            '<div class="item">'
+            f'<img class="rounded" src="{img_url}">'
+            '</div>'
+            '</div>'
+            '</div>'
+            '</div>')
 
 
 def create_slideshow(html_file='index.html', clear_target=False,
@@ -17,7 +25,7 @@ def create_slideshow(html_file='index.html', clear_target=False,
     with open(html_file, encoding='utf8') as fp:
         soup = BeautifulSoup(fp, "html.parser")
 
-    target = soup.find(class_= 'slideshow-container')
+    target = soup.find(class_= 'container')
 
     if clear_target:
         target.clear()
